@@ -2,10 +2,13 @@
  * Client gọi Trudesk Core thật qua HTTP bằng token riêng của service AI.
  * AI KHÔNG đọc MongoDB trực tiếp (nguyên tắc trong expansion-plan.md).
  *
+ * Chỉ dùng API v1 (header `accesstoken`). API v2 xác thực bằng JWT, và /api/v2/login, /api/v2/token
+ * của Trudesk 1.2.11 có lỗi (await một hàm chỉ hỗ trợ callback) nên service không lấy được JWT.
+ *
  * suggestionSink:
  *   'internal-note' (mặc định): ghi gợi ý thành internal note qua API có sẵn POST /api/v1/tickets/addnote.
  *                               Chạy được ngay, không cần sửa Core. Chỉ nhân viên thấy note.
- *   'endpoint'                : POST /api/v2/tickets/:uid/ai-suggestions (endpoint đề xuất, người A bổ sung).
+ *   'endpoint'                : POST /api/v1/tickets/:uid/ai-suggestions (endpoint đề xuất, người A bổ sung).
  */
 
 const axios = require('axios')
@@ -28,10 +31,10 @@ function formatNote (s) {
 }
 
 class HttpCore {
-  constructor ({ baseUrl, accessToken, suggestionSink = 'internal-note', timeoutMs = 5000 }) {
+  constructor ({ baseUrl, accessToken, suggestionSink = 'internal-note', timeoutMs = 5000, http }) {
     if (!accessToken) throw new Error('HttpCore: TRUDESK_AI_TOKEN is required')
     this.sink = suggestionSink
-    this.http = axios.create({
+    this.http = http || axios.create({
       baseURL: baseUrl.replace(/\/$/, ''),
       timeout: timeoutMs,
       headers: { accesstoken: accessToken, 'Content-Type': 'application/json' }
@@ -39,8 +42,8 @@ class HttpCore {
   }
 
   async getTicket (uid) {
-    const res = await this.http.get(`/api/v2/tickets/${uid}`)
-    return res.data && res.data.ticket ? res.data.ticket : null
+    const res = await this.http.get(`/api/v1/tickets/${uid}`)
+    return res.data && res.data.success && res.data.ticket ? res.data.ticket : null
   }
 
   /** Phản hồi công khai bằng tài khoản AI (token). Core phát ticket:comment:added -> người dùng nhận web + email. */
@@ -64,7 +67,11 @@ class HttpCore {
     }
     const status = this.statuses.find(s => String(s.name).toLowerCase() === statusName.toLowerCase())
     if (!status) throw new Error(`status "${statusName}" không tồn tại`)
-    await this.http.put('/api/v2/tickets/batch', { batch: [{ id: ticket._id, status: status._id }] })
+    // PUT /api/v1/tickets/:id nhận status và closedDate (đóng thì ghi ngày đóng, mở lại thì xóa)
+    await this.http.put(`/api/v1/tickets/${ticket._id}`, {
+      status: status._id,
+      closedDate: status.isResolved ? new Date().toISOString() : null
+    })
   }
 
   async requireTicket (uid) {
@@ -75,7 +82,7 @@ class HttpCore {
 
   async postSuggestion (uid, suggestion) {
     if (this.sink === 'endpoint') {
-      const res = await this.http.post(`/api/v2/tickets/${uid}/ai-suggestions`, suggestion)
+      const res = await this.http.post(`/api/v1/tickets/${uid}/ai-suggestions`, suggestion)
       return res.data
     }
     const ticket = await this.getTicket(uid)

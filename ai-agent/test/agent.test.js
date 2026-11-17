@@ -157,6 +157,28 @@ describe('ai-agent / pipeline', function () {
   })
 })
 
+describe('ai-agent / HttpCore', function () {
+  it('chỉ gọi API v1 (accesstoken), đổi trạng thái bằng PUT /api/v1/tickets/:id', async function () {
+    const { HttpCore } = require('../src/core/httpCore')
+    const calls = []
+    const http = {
+      get: async url => {
+        calls.push('GET ' + url)
+        if (url === '/api/v1/tickets/status') return { data: { success: true, status: [{ _id: 's3', name: 'Closed', isResolved: true }] } }
+        return { data: { success: true, ticket: { _id: 'oid1', uid: 1042 } } }
+      },
+      post: async (url, body) => calls.push('POST ' + url + ' ' + Object.keys(body).join(',')),
+      put: async (url, body) => calls.push('PUT ' + url + ' ' + body.status + ' ' + (body.closedDate ? 'date' : 'null'))
+    }
+    const core = new HttpCore({ baseUrl: 'http://x', accessToken: 't', http })
+    await core.postComment(1042, 'hi')
+    await core.setStatus(1042, 'closed')
+    expect(calls).to.include('POST /api/v1/tickets/addcomment _id,comment')
+    expect(calls).to.include('PUT /api/v1/tickets/oid1 s3 date')
+    expect(calls.some(c => c.indexOf('/api/v2/') !== -1)).to.be.false
+  })
+})
+
 describe('ai-agent / webhook server', function () {
   it('từ chối chữ ký sai, nhận chữ ký đúng (202) và xử lý bất đồng bộ', async function () {
     const secret = 'whsec'

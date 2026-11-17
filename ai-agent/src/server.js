@@ -25,9 +25,17 @@ function verifySignature (secret, rawBody, header) {
 }
 
 function createServer ({ agent = createAgent(), secret = process.env.AI_WEBHOOK_SECRET || '' } = {}) {
+  if (!secret) console.warn('[ai-agent] AI_WEBHOOK_SECRET chưa đặt: chấp nhận mọi request /events (chỉ dùng khi dev local)')
   const queue = new MemoryQueue({
     handler: async event => {
+      const uid = event.data && event.data.ticket ? event.data.ticket.uid : '?'
+      const started = Date.now()
       const result = await agent.pipeline.handle(event)
+      const action = result.autoReply ? `, ${result.autoReply.kind || 'không gửi'}` : result.label ? `, ${result.label}` : ''
+      console.log(
+        `[ai-agent] ${event.type} #${uid} -> ${result.status}${action}${result.reason ? ` (${result.reason})` : ''} ` +
+          `${((Date.now() - started) / 1000).toFixed(1)}s`
+      )
       // Lỗi mạng/giới hạn tốc độ của LLM -> thử lại; lỗi khác -> bỏ qua gợi ý (đã ghi audit)
       if (result.status === 'skipped' && ['rate_limit', 'network', 'server'].indexOf(result.reason) !== -1) {
         agent.pipeline.seenEvents.delete(event.id)
@@ -79,8 +87,17 @@ function createServer ({ agent = createAgent(), secret = process.env.AI_WEBHOOK_
 }
 
 if (require.main === module) {
+  require('./env').loadEnvFile()
   const port = Number(process.env.PORT || 8200)
-  const { server, agent } = createServer()
+  let created
+  try {
+    created = createServer()
+  } catch (err) {
+    console.error(`[ai-agent] Không khởi động được: ${err.message}`)
+    console.error('[ai-agent] Kiểm tra ai-agent/.env (xem docs/run-guide.md)')
+    process.exit(1)
+  }
+  const { server, agent } = created
   server.listen(port, () => {
     console.log(
       `[ai-agent] listening on :${port} | provider=${agent.config.provider} core=${agent.config.core.mode} kb=${agent.kb.store.size()} chunks`

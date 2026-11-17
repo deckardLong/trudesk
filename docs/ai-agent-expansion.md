@@ -99,15 +99,17 @@ Bật khi đặt `AI_AGENT_WEBHOOK_URL`. Gửi `POST /events`, header `X-Trudesk
 
 Payload không gửi email/SĐT của người tạo. Tên sự kiện gửi ra ngoài dùng dấu chấm, để phân biệt với emitter nội bộ dùng dấu hai chấm. AI chống xử lý trùng theo `id`.
 
-### 3.2 AI → Core ([httpCore.js](../ai-agent/src/core/httpCore.js), header `accesstoken`)
+### 3.2 AI → Core ([httpCore.js](../ai-agent/src/core/httpCore.js), API v1, header `accesstoken`)
+
+AI **chỉ dùng API v1**. API v2 xác thực bằng JWT (`Authorization: Bearer`), mà `/api/v2/login` và `/api/v2/token` của Trudesk 1.2.11 có lỗi (`await` một hàm chỉ hỗ trợ callback) nên service không lấy được JWT. Token của tài khoản `ai.assistant` được tạo bằng `POST /api/v1/users/:id/generateapikey` (xem [run-guide.md](run-guide.md), bước 4).
 
 | Mục đích | API | Ghi chú |
 |---|---|---|
-| Đọc ticket | `GET /api/v2/tickets/:uid` | Có sẵn |
+| Đọc ticket | `GET /api/v1/tickets/:uid` | Có sẵn |
 | Gửi phản hồi công khai (trả lời / xác nhận / chuyển người / đóng) | `POST /api/v1/tickets/addcomment` | Có sẵn. Core phát `ticket:comment:added` → Notifier |
 | Ghi chú nội bộ cho nhân viên | `POST /api/v1/tickets/addnote` | Có sẵn |
-| Đổi trạng thái (Pending / Open / Closed) | `GET /api/v1/tickets/status` + `PUT /api/v2/tickets/batch` | Có sẵn |
-| Gợi ý triage chờ duyệt | Mặc định ghi thành internal note; hoặc `POST /api/v2/tickets/:uid/ai-suggestions` | Endpoint thứ hai là **đề xuất**, chưa có trong Core (`AI_SUGGESTION_SINK=endpoint`) |
+| Đổi trạng thái (Pending / Open / Closed) | `GET /api/v1/tickets/status` + `PUT /api/v1/tickets/:id` (`status`, `closedDate`) | Có sẵn |
+| Gợi ý triage chờ duyệt | Mặc định ghi thành internal note; hoặc `POST /api/v1/tickets/:uid/ai-suggestions` | Endpoint thứ hai là **đề xuất**, chưa có trong Core (`AI_SUGGESTION_SINK=endpoint`) |
 
 ### 3.3 Nhãn phản hồi tự động
 
@@ -167,7 +169,8 @@ flowchart TB
 
 | Khối | File | Ghi chú |
 |---|---|---|
-| Server, Queue | [server.js](../ai-agent/src/server.js), [memoryQueue.js](../ai-agent/src/queue/memoryQueue.js) | Lỗi mạng/LLM tạm thời thì thử lại; thay bằng SQS khi lên cloud |
+| Server, Queue | [server.js](../ai-agent/src/server.js), [memoryQueue.js](../ai-agent/src/queue/memoryQueue.js) | Lỗi mạng/LLM tạm thời thì thử lại; thay bằng SQS khi lên cloud. Mỗi sự kiện xử lý xong in một dòng log (`ticket.created #1001 -> suggested, answer 42.3s`) |
+| Cấu hình | [config.js](../ai-agent/src/config.js), [env.js](../ai-agent/src/env.js) | `npm run ai-agent` tự đọc `ai-agent/.env`; biến đặt sẵn trong shell được ưu tiên |
 | Pipeline | [pipeline.js](../ai-agent/src/pipeline.js) | Điều phối toàn bộ; mọi lỗi chỉ làm mất gợi ý, không chặn ticket |
 | Che PII | [piiMasker.js](../ai-agent/src/preprocess/piiMasker.js) | `mask` (có thể khôi phục cho nháp agent duyệt) và `dropTags` (bỏ hẳn: kho tri thức, đầu vào soạn trả lời) |
 | Skills | [skills/index.js](../ai-agent/src/skills/index.js) | Prompt đánh dấu nội dung ticket là dữ liệu (chống prompt injection); xưng "IT", gọi "anh/chị" |
@@ -412,13 +415,15 @@ Khi dùng thật nên tạo **hộp thư riêng cho helpdesk** (vd `support@tenc
 
 ### 8.3 Chạy thử
 
+Hướng dẫn chạy đầy đủ với Trudesk thật (MongoDB, tài khoản AI, token, SMTP, IMAP, xử lý sự cố): [run-guide.md](run-guide.md).
+
 ```bash
 npm run demo:auto-reply     # AI (Ollama) tự trả lời → người dùng phản hồi → đóng ticket / chuyển nhân viên
 npm run demo:e2e            # AI gợi ý → agent duyệt nháp → thông báo web + email → reply email
 node demo/send-real-email.js --to <email> [--ticket 1047] [--dry-run] [--mock]
                             # gửi THẬT qua SMTP Gmail (GMAIL_USER, GMAIL_APP_PASSWORD trong ai-agent/.env)
 npm run ai-agent:eval       # bảng độ chính xác triage (AI_PROVIDER=ollama để đo model thật)
-npm run test:unit           # 57 test, không cần MongoDB
+npm run test:unit           # 58 test, không cần MongoDB
 npm run ai-agent            # chạy AI Agent Service ở cổng 8200
 ```
 
@@ -446,8 +451,8 @@ npm run ai-agent            # chạy AI Agent Service ở cổng 8200
 
 | Hạng mục | Hiện trạng | Việc cần làm | Người |
 |---|---|---|---|
-| Tích hợp MongoDB thật | `trudeskAdapters.js`, `inboundHandler.js`, phần sửa `events.js` / `mailCheck.js` mới kiểm tra nạp module và lint | Chạy `npm test` trên CI có MongoDB; thử tay luồng comment + reply email | A, C |
-| Tài khoản AI trong Core | Chưa tạo | Tạo user `ai.assistant` (role support), lấy token cho `TRUDESK_AI_TOKEN` | A, C |
+| Tích hợp MongoDB thật | Trudesk đã khởi động được với code mới (kết nối MongoDB, bật chuyển sự kiện sang AI). Luồng ticket → AI → comment → thông báo trên dữ liệu thật **chưa chạy hết** | Làm theo kịch bản thử ở [run-guide.md](run-guide.md) mục 8; chạy `npm test` trên CI có MongoDB | A, C |
+| Tài khoản AI trong Core | Cần tạo tay trên mỗi môi trường | Tạo user `ai.assistant` (role Support), lấy token (run-guide.md bước 4) | A, C |
 | IMAP với Gmail | Chưa cấu hình | Bật IMAP cho hộp helpdesk, khai báo ở Settings → Mailer → Mail Check | C |
 | Outbox lưu trong RAM | Mất email đang chờ (tối đa ~5 phút) khi restart; nhiều instance có thể gửi trùng | Store trên MongoDB/Redis + khóa phân tán khi flush | C |
 | Giao diện web | Server đã lưu chuông thông báo và phát `$trudesk:client:ticket:reply`; client chưa hiện toast, chưa có màn hình chọn kênh nhận | Listener trong `src/client`, mục chọn kênh trong Profile (dùng icon Material có sẵn) | A |
@@ -474,6 +479,6 @@ npm run ai-agent            # chạy AI Agent Service ở cổng 8200
 | [inboundReply.js](../src/notifications/ticketReply/inboundReply.js), [inboundHandler.js](../src/notifications/ticketReply/inboundHandler.js) | Email trả lời đi vào |
 | [trudeskAdapters.js](../src/notifications/ticketReply/trudeskAdapters.js) | Nối Notifier vào Mongoose, mailer, Socket.io |
 
-**AI Agent Service** (`ai-agent/`): `src/server.js`, `src/queue/`, `src/pipeline.js`, `src/bootstrap.js`, `src/config.js`, `src/preprocess/`, `src/skills/`, `src/rag/`, `src/llm/` (providers `ollama`, `claude`, `mock`), `src/guardrails/`, `src/autoreply/`, `src/core/` (`httpCore`, `mockCore`), `src/audit/`; `mock-data/`; `scripts/eval.js`; `test/`.
+**AI Agent Service** (`ai-agent/`): `src/server.js`, `src/env.js`, `src/queue/`, `src/pipeline.js`, `src/bootstrap.js`, `src/config.js`, `src/preprocess/`, `src/skills/`, `src/rag/`, `src/llm/` (providers `ollama`, `claude`, `mock`), `src/guardrails/`, `src/autoreply/`, `src/core/` (`httpCore`, `mockCore`), `src/audit/`; `mock-data/`; `scripts/eval.js`; `test/`.
 
 **Demo và test**: `demo/e2e-auto-reply-ollama.js`, `demo/e2e-ai-reply-notify.js`, `demo/send-real-email.js`, `demo/mock-data/`, `test/unit/ticketReply.js`, `ai-agent/test/`.
