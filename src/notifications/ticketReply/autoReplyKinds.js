@@ -6,11 +6,18 @@
  * PHẢI KHỚP với ai-agent/src/autoreply/templates.js (MARKERS); có test kiểm tra.
  */
 
+// icon: tên mdi-* cho email (vẽ thành PNG); webIcon: tên Material Icons mà giao diện Trudesk đang dùng.
+// File này được dùng chung cho server và giao diện React (src/client/lib/aiReply.js), không require gì thêm.
 const KINDS = {
-  answer: { label: 'Bộ phận IT · Trả lời tự động', icon: 'hardware-headset-mic', color: '#2b5ea7' },
-  ack: { label: 'Bộ phận IT · Đã tiếp nhận yêu cầu', icon: 'action-assignment-turned-in', color: '#2b5ea7' },
-  handoff: { label: 'Bộ phận IT · Đã chuyển nhân viên xử lý', icon: 'action-swap-horiz', color: '#b7791f' },
-  closed: { label: 'Bộ phận IT · Đã đóng ticket', icon: 'action-check-circle', color: '#2f855a' }
+  answer: { label: 'Bộ phận IT · Trả lời tự động', icon: 'hardware-headset-mic', webIcon: 'headset_mic', color: '#2b5ea7' },
+  ack: {
+    label: 'Bộ phận IT · Đã tiếp nhận yêu cầu',
+    icon: 'action-assignment-turned-in',
+    webIcon: 'assignment_turned_in',
+    color: '#2b5ea7'
+  },
+  handoff: { label: 'Bộ phận IT · Đã chuyển nhân viên xử lý', icon: 'action-swap-horiz', webIcon: 'swap_horiz', color: '#b7791f' },
+  closed: { label: 'Bộ phận IT · Đã đóng ticket', icon: 'action-check-circle', webIcon: 'check_circle', color: '#2f855a' }
 }
 
 /** Trả về { kind, ...KINDS[kind] } nếu dòng đầu văn bản là một nhãn tự động. */
@@ -19,7 +26,9 @@ function detectKind (text) {
     .replace(/^\s+/, '')
     .split('\n')[0]
     .trim()
-  for (const [kind, def] of Object.entries(KINDS)) if (first === def.label) return { kind, ...def }
+  for (const kind of Object.keys(KINDS)) {
+    if (first === KINDS[kind].label) return Object.assign({ kind }, KINDS[kind])
+  }
   return null
 }
 

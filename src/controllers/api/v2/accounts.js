@@ -391,6 +391,14 @@ accountsApi.saveProfile = async (req, res) => {
     // User Preferences
     if (!_.isUndefined(payload.preferences) && !_.isNull(payload.preferences)) {
       if (payload.preferences.timezone) dbUser.preferences.timezone = payload.preferences.timezone
+
+      // Kênh nhận thông báo phản hồi ticket (src/notifications/ticketReply/channelPolicy.js)
+      const n = payload.preferences.notifications
+      if (n && typeof n === 'object') {
+        if (['both', 'web', 'email', 'none'].indexOf(n.channel) !== -1) dbUser.preferences.notifications.channel = n.channel
+        if (typeof n.skipEmailWhenOnline === 'boolean')
+          dbUser.preferences.notifications.skipEmailWhenOnline = n.skipEmailWhenOnline
+      }
     }
 
     dbUser = await dbUser.save()

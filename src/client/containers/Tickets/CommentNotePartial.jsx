@@ -17,6 +17,7 @@ import ReactHtmlParser from 'react-html-parser'
 import Avatar from 'components/Avatar/Avatar'
 
 import helpers from 'lib/helpers'
+import { parseAutoReply } from 'lib2/aiReply'
 
 const setupImages = parent => {
   const imagesEl = parent.body.querySelectorAll('img:not(.hasLinked)')
@@ -44,8 +45,10 @@ class CommentNotePartial extends React.Component {
   render () {
     const { ticketSubject, comment, isNote, dateFormat, onEditClick, onRemoveClick } = this.props
     const dateFormatted = helpers.formatDate(comment.date, dateFormat)
+    // Phản hồi tự động của AI Agent: dòng nhãn đầu tiên hiển thị thành huy hiệu có icon
+    const autoReply = !isNote ? parseAutoReply(comment.comment) : null
     return (
-      <div className='ticket-comment'>
+      <div className={'ticket-comment' + (autoReply ? ' ticket-comment-auto' : '')}>
         <Avatar image={comment.owner.image} userId={comment.owner._id} />
         <div className='issue-text'>
           <h3>Re: {ticketSubject}</h3>
@@ -59,10 +62,32 @@ class CommentNotePartial extends React.Component {
 
           <br />
           {isNote && <span className='uk-badge uk-badge-small nomargin-left-right text-white'>NOTE</span>}
+          {autoReply && (
+            <span
+              className='auto-reply-badge'
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                marginTop: 6,
+                padding: '2px 8px 2px 4px',
+                borderRadius: 3,
+                fontSize: 12,
+                fontWeight: 500,
+                color: autoReply.color,
+                background: 'rgba(0,0,0,0.04)',
+                border: `1px solid ${autoReply.color}`
+              }}
+            >
+              <i className='material-icons' style={{ fontSize: 16, marginRight: 4 }}>
+                {autoReply.webIcon}
+              </i>
+              {autoReply.label}
+            </span>
+          )}
 
           <div className='comment-body' style={{ marginTop: 10 }} ref={r => (this.body = r)}>
             {isNote && <Fragment>{ReactHtmlParser(comment.note)}</Fragment>}
-            {!isNote && <Fragment>{ReactHtmlParser(comment.comment)}</Fragment>}
+            {!isNote && <Fragment>{ReactHtmlParser(autoReply ? autoReply.bodyHtml : comment.comment)}</Fragment>}
           </div>
         </div>
         {this.props.ticketStatus.get('isResolved') === false && (

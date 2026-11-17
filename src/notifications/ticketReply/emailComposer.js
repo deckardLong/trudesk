@@ -46,7 +46,8 @@ function removeFirstLine (html, label) {
   const s = String(html || '')
   const escaped = escapeHtml(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const re = new RegExp(`^\\s*(<p>\\s*)?${escaped}\\s*(</p>|<br\\s*/?>)?\\s*`)
-  return re.test(s) ? s.replace(re, (m, open, close) => (open && !close ? '<p>' : '')) : s
+  // Nhãn là cả đoạn <p>…</p> -> bỏ hẳn; nhãn cùng đoạn với nội dung (ngăn bằng <br>) -> giữ lại thẻ <p> mở
+  return re.test(s) ? s.replace(re, (m, open, close) => (open && (!close || /^<br/i.test(close)) ? '<p>' : '')) : s
 }
 
 function domainOf (address, fallback) {

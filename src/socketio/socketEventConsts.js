@@ -41,6 +41,11 @@ exported.TICKETS_PRIORITY_SET = '$trudesk:tickets:priority:set'
 exported.TICKETS_UI_DUEDATE_UPDATE = '$trudesk:tickets:ui:duedate:update'
 exported.TICKETS_DUEDATE_SET = '$trudesk:tickets:duedate:set'
 
+// Phản hồi mới gửi riêng cho người nhận (src/notifications/ticketReply) -> giao diện hiện toast
+exported.TICKETS_REPLY_NOTIFY = '$trudesk:client:ticket:reply'
+// AI Agent ghi gợi ý mới cho ticket -> khu "Gợi ý từ AI" tải lại
+exported.TICKETS_AI_SUGGESTION_UPDATE = '$trudesk:tickets:ai:suggestion:update'
+
 exported.TICKETS_UI_TAGS_UPDATE = '$trudesk:tickets:ui:tags:update'
 exported.TICKETS_TAGS_SET = '$trudesk:tickets:tags:set'
 

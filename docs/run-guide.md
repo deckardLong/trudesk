@@ -44,6 +44,10 @@ Mở http://localhost:8118 và đăng nhập bằng tài khoản admin. Nếu te
 
 1. **Settings → General → Site URL**: `http://localhost:8118` (link "Xem ticket" trong email dùng giá trị này).
 2. **Settings → Tickets → Status**: cần có các trạng thái tên `Open`, `Pending`, `Closed` (mặc định đã có). Nếu đặt tên khác, sửa `AI_AUTO_REPLY_*_STATUS` trong `ai-agent/.env`.
+3. **Danh mục khớp với AI** (để nút "Áp dụng" trong khu Gợi ý từ AI dùng được). AI gợi ý theo tên trong `ai-agent/mock-data/catalog.json`; giao diện tìm theo **tên** (không phân biệt hoa thường):
+   - Settings → Tickets → Ticket Types: tạo `Incident`, `Service Request`, `Problem`, `Change`; mỗi loại gán các mức ưu tiên `Low`, `Normal`, `High`, `Critical` (tạo ở Priorities nếu chưa có).
+   - Groups: tạo `Network`, `Access`, `Hardware`, `Email`, `Software`.
+   - Muốn dùng tên khác thì sửa `catalog.json` cho trùng với tên trong Trudesk rồi khởi động lại AI Agent. Tên không khớp chỉ làm trường đó hiện mờ; các phần khác vẫn chạy.
 
 ## 4. Tạo tài khoản cho AI và lấy access token
 
@@ -128,7 +132,7 @@ Thấy `[ai-agent] listening on :8200 | provider=ollama core=http kb=11 chunks` 
 ## 7. Chạy thử không cần Trudesk / MongoDB
 
 ```powershell
-npm run test:unit                       # 58 test
+npm run test:unit                       # 64 test
 npm run demo:auto-reply                 # AI tự trả lời với Ollama thật, dữ liệu mock
 npm run demo:e2e                        # agent duyệt nháp, thông báo web + email (mock)
 node demo/send-real-email.js --to <email>   # gửi 1 email thật qua Gmail (GMAIL_USER, GMAIL_APP_PASSWORD trong ai-agent/.env)
@@ -140,29 +144,23 @@ Chuẩn bị: đã làm xong bước 1–5. Tạo thêm một người dùng th�
 
 | # | Chức năng | Làm gì | Kết quả mong đợi |
 |---|---|---|---|
-| 1 | AI phân loại, gợi ý cho nhân viên | `khach` tạo ticket bất kỳ | Sau 10–90 giây ticket có **ghi chú nội bộ** "Gợi ý từ AI" (loại, mức ưu tiên, nhóm, tag, ticket tương tự, nháp). Chỉ admin/nhân viên thấy |
-| 2 | AI tự trả lời | `khach` tạo: *Không kết nối được VPN từ nhà / Từ sáng nay em không vào được VPN, báo lỗi 809* | Comment **Bộ phận IT · Trả lời tự động** của Trợ lý IT, có các bước khắc phục và nguồn KB; trạng thái **Pending** |
+| 1 | AI phân loại, gợi ý cho nhân viên | `khach` tạo ticket bất kỳ; admin mở ticket đó | Sau 10–90 giây, cột trái có khu **Gợi ý từ AI** (icon bóng đèn): loại, mức ưu tiên, nhóm kèm % tin cậy, tag, ticket tương tự, nháp. Chỉ nhân viên thấy; khu tự hiện, không cần tải lại trang |
+| 1b | Duyệt gợi ý | Trong khu Gợi ý từ AI: tick các trường muốn dùng → **Áp dụng đã chọn** (hoặc **Bỏ qua**) | Type / Priority / Group của ticket đổi theo; Ticket History có dòng "Duyệt gợi ý AI: áp dụng …"; khu gợi ý biến mất. Trường AI gợi ý mà hệ thống không có (vd loại "Incident" khi Trudesk chỉ có "Issue/Task") hiện mờ, ghi "không có trong hệ thống" |
+| 1c | Dùng nháp của AI | Bấm **Xem** để đọc nháp → **Chèn nháp vào ô Comment** | Nháp được đổ vào ô Comment để sửa; nhân viên tự bấm Post Comment. Khi bấm Áp dụng, việc dùng nháp được ghi lại |
+| 2 | AI tự trả lời | `khach` tạo: *Không kết nối được VPN từ nhà / Từ sáng nay em không vào được VPN, báo lỗi 809* | Comment của Trợ lý IT có huy hiệu viền xanh, icon tai nghe, chữ **Bộ phận IT · Trả lời tự động**, kèm các bước khắc phục và nguồn KB; trạng thái **Pending**. Khu Gợi ý từ AI ghi "AI đã tự trả lời người dùng" |
 | 3 | Không tự trả lời ca rủi ro | `khach` tạo: *Wifi toàn công ty bị sập, khẩn cấp* (Critical); hoặc *Xin cấp quyền thư mục dự án* (Service Request) | Chỉ comment **Đã tiếp nhận yêu cầu**, ticket giữ **Open**, nháp nằm trong ghi chú nội bộ chờ nhân viên |
 | 4a | Người dùng xác nhận đã xong | Ở ticket #2, `khach` trả lời *Em làm theo bước 2 thì vào được rồi, cảm ơn* | Comment **Đã đóng ticket**; trạng thái **Closed** |
 | 4b | Người dùng cần người thật | Tạo lại ticket VPN; khi AI trả lời, `khach` viết *Vẫn lỗi, cho em gặp nhân viên* | Comment **Đã chuyển nhân viên xử lý**; trạng thái **Open**; ghi chú nội bộ tóm tắt cho nhân viên. AI không trả lời thêm ở ticket này |
 | 5 | AI nhường nhân viên | Ở ticket đã được AI trả lời, admin comment trước, sau đó `khach` trả lời | AI không can thiệp (terminal 2 in `ignored`) |
-| 6 | Thông báo web | Admin trả lời ticket của `khach` | Chuông thông báo của `khach` (cửa sổ ẩn danh) có "Ticket #… có phản hồi mới" sau vài giây |
+| 6 | Thông báo web | `khach` mở trang danh sách ticket (không mở ticket đó); admin trả lời ticket của `khach` | Góc dưới phải màn hình `khach` hiện **toast** "Ticket #… có phản hồi mới - tên người trả lời" kèm đoạn đầu nội dung và nút **XEM** (mở ticket). Chuông thông báo cũng có mục mới. Đang mở đúng ticket thì không hiện toast vì comment đã tự cập nhật |
 | 7 | Thông báo email | Như #6, chế độ `mock` | Sau 60 giây có file `.eml` trong `logs/mock-mailbox/`; mở bằng Outlook thấy icon, tiêu đề `[Ticket #…] Re: …`, link xem ticket |
 | 8 | Gộp email | Admin gửi 2 comment liên tiếp trong vòng 60 giây | `khach` nhận **1** email "Ticket của bạn có 2 phản hồi mới" |
 | 9 | Ghi chú nội bộ không lộ ra ngoài | Admin thêm Internal Note | `khach` không nhận gì; nhân viên khác theo dõi ticket nhận chuông |
-| 10 | Chọn kênh nhận | `khach` mở F12 → Console, chạy lệnh ở dưới với `channel: 'web'`, rồi admin trả lời ticket | `khach` chỉ có chuông, **không** có email. Giá trị `email` / `none` / `both` thử tương tự |
+| 10 | Chọn kênh nhận | `khach` vào **Profile → Preferences → Thông báo phản hồi ticket**, chọn **Chỉ trên web**, bấm Save Preferences; admin trả lời ticket | `khach` chỉ có toast + chuông, **không** có email. Thử tương tự "Chỉ email", "Không nhận"; ô "Không gửi email khi tôi đang mở web" chỉ bật được khi chọn "Web và email" |
 | 11 | Email thật | Bước 6.2 | Email về hộp Gmail, Reply-To dạng `…+t<số ticket>.<chữ ký>@…` |
 | 12 | Trả lời bằng email | Bước 6.3 (chỉ với hộp thư riêng) | Thư trả lời thành comment của đúng ticket; ticket đóng trong vòng 7 ngày thì được mở lại |
 
-Lệnh đổi kênh nhận cho #10 (chạy khi đang đăng nhập bằng `khach`; giao diện chọn kênh chưa có):
-
-```js
-await (await fetch('/api/v1/users/khach/updatepreferences', {
-  method: 'PUT',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ preference: 'notifications', value: { channel: 'web', skipEmailWhenOnline: false } })
-})).json()
-```
+Sau mỗi lần cập nhật code giao diện: build lại bằng `npm run webpackdist` (khoảng 1–2 phút), khởi động lại Trudesk, rồi tải lại trình duyệt bằng **Ctrl+F5** để bỏ bản cũ trong cache.
 
 Xem AI đã quyết định gì (vì sao tự trả lời hay không):
 

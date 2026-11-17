@@ -40,6 +40,7 @@ import {
   TICKETS_COMMENT_NOTE_SET
 } from 'serverSocket/socketEventConsts'
 
+import AISuggestionPanel from 'containers/Tickets/AISuggestionPanel'
 import AssigneeDropdownPartial from 'containers/Tickets/AssigneeDropdownPartial'
 import Avatar from 'components/Avatar/Avatar'
 import CommentNotePartial from 'containers/Tickets/CommentNotePartial'
@@ -538,6 +539,20 @@ class SingleTicketContainer extends React.Component {
                         </div>
                       </div>
                     </div>
+
+                    {helpers.canUser('tickets:notes', true) && (
+                      <AISuggestionPanel
+                        key={this.ticket._id}
+                        ticket={this.ticket}
+                        ticketTypes={this.props.ticketTypes}
+                        groups={this.props.groupsState ? this.props.groupsState.groups : null}
+                        socket={this.props.socket}
+                        onInsertDraft={text => {
+                          if (this.commentMDE) this.commentMDE.setEditorText(text)
+                          helpers.scrollToBottom('.page-content-right', true)
+                        }}
+                      />
+                    )}
 
                     {helpers.canUser('agent:*', true) && (
                       <div className='uk-width-1-1 padding-left-right-15'>

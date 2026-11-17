@@ -70,9 +70,10 @@ function load (env = process.env) {
       mode: env.CORE_MODE || 'mock',
       baseUrl: env.TRUDESK_URL || 'http://localhost:8118',
       accessToken: env.TRUDESK_AI_TOKEN || '',
-      // 'endpoint' = POST /api/v2/tickets/:uid/ai-suggestions (đề xuất, người A thêm)
-      // 'internal-note' = ghi gợi ý thành internal note qua API v1 có sẵn (chạy được ngay)
-      suggestionSink: env.AI_SUGGESTION_SINK || 'internal-note'
+      // 'endpoint' = POST /api/v1/tickets/:uid/ai-suggestions -> khu "Gợi ý từ AI" trong giao diện ticket
+      //              (Core chưa có endpoint thì tự chuyển sang internal note)
+      // 'internal-note' = luôn ghi gợi ý thành internal note
+      suggestionSink: env.AI_SUGGESTION_SINK || 'endpoint'
     },
 
     auditLogPath: env.AI_AUDIT_LOG || ''

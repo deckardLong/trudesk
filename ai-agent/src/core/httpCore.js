@@ -6,9 +6,9 @@
  * của Trudesk 1.2.11 có lỗi (await một hàm chỉ hỗ trợ callback) nên service không lấy được JWT.
  *
  * suggestionSink:
- *   'internal-note' (mặc định): ghi gợi ý thành internal note qua API có sẵn POST /api/v1/tickets/addnote.
- *                               Chạy được ngay, không cần sửa Core. Chỉ nhân viên thấy note.
- *   'endpoint'                : POST /api/v1/tickets/:uid/ai-suggestions (endpoint đề xuất, người A bổ sung).
+ *   'endpoint' (mặc định): POST /api/v1/tickets/:uid/ai-suggestions -> hiện ở khu "Gợi ý từ AI" trong ticket,
+ *                          agent duyệt từng trường. Core chưa có endpoint (404) thì tự chuyển sang internal note.
+ *   'internal-note'      : ghi gợi ý thành internal note qua POST /api/v1/tickets/addnote.
  */
 
 const axios = require('axios')
@@ -82,8 +82,13 @@ class HttpCore {
 
   async postSuggestion (uid, suggestion) {
     if (this.sink === 'endpoint') {
-      const res = await this.http.post(`/api/v1/tickets/${uid}/ai-suggestions`, suggestion)
-      return res.data
+      try {
+        const res = await this.http.post(`/api/v1/tickets/${uid}/ai-suggestions`, suggestion)
+        return res.data
+      } catch (err) {
+        // Core cũ chưa có endpoint -> ghi internal note như trước
+        if (!err.response || err.response.status !== 404) throw err
+      }
     }
     const ticket = await this.getTicket(uid)
     if (!ticket) throw new Error(`ticket #${uid} not found`)

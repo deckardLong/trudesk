@@ -27,6 +27,13 @@ import SingleSelect from 'components/SingleSelect'
 import helpers from 'lib/helpers'
 import RGrid from 'components/RGrid'
 
+const NOTIFY_CHANNELS = [
+  { text: 'Web và email', value: 'both' },
+  { text: 'Chỉ trên web', value: 'web' },
+  { text: 'Chỉ email', value: 'email' },
+  { text: 'Không nhận', value: 'none' }
+]
+
 @observer
 class ProfileContainer extends React.Component {
   @observable editingProfile = false
@@ -55,6 +62,9 @@ class ProfileContainer extends React.Component {
 
   // Prefs
   @observable timezone = null
+  // Kênh nhận thông báo phản hồi ticket (src/notifications/ticketReply/channelPolicy.js)
+  @observable notifyChannel = 'both'
+  @observable notifySkipOnline = false
 
   constructor (props) {
     super(props)
@@ -82,6 +92,11 @@ class ProfileContainer extends React.Component {
 
       if (this.props.sessionUser.preferences) {
         this.timezone = this.props.sessionUser.preferences.timezone
+        const n = this.props.sessionUser.preferences.notifications
+        if (n) {
+          this.notifyChannel = n.channel || 'both'
+          this.notifySkipOnline = n.skipEmailWhenOnline === true
+        }
       }
     }
   }
@@ -143,7 +158,11 @@ class ProfileContainer extends React.Component {
         linkedinUrl: this.linkedinUrl,
         twitterUrl: this.twitterUrl,
         preferences: {
-          timezone: this.timezone
+          timezone: this.timezone,
+          notifications: {
+            channel: this.notifyChannel,
+            skipEmailWhenOnline: this.notifySkipOnline
+          }
         }
       })
       .then(() => {
@@ -622,6 +641,37 @@ class ProfileContainer extends React.Component {
                           defaultValue={this.timezone || undefined}
                           onSelectChange={e => this.onTimezoneSelectChange(e)}
                         />
+                      </div>
+
+                      <h4 style={{ marginBottom: 15, display: 'flex', alignItems: 'center' }}>
+                        <i className='material-icons' style={{ fontSize: 20, marginRight: 6 }}>
+                          notifications
+                        </i>
+                        Thông báo phản hồi ticket
+                      </h4>
+                      <div className={'uk-clearfix uk-margin-bottom'}>
+                        <label style={{ fontSize: '13px' }}>Khi ticket của tôi có phản hồi, báo qua</label>
+                        <SingleSelect
+                          items={NOTIFY_CHANNELS}
+                          defaultValue={this.notifyChannel || 'both'}
+                          onSelectChange={e => {
+                            this.notifyChannel = e.target.value
+                          }}
+                        />
+                      </div>
+                      <div className={'uk-clearfix uk-margin-large-bottom'}>
+                        <label style={{ fontSize: '13px', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type='checkbox'
+                            style={{ marginRight: 6 }}
+                            checked={this.notifySkipOnline}
+                            disabled={this.notifyChannel !== 'both'}
+                            onChange={e => {
+                              this.notifySkipOnline = e.target.checked
+                            }}
+                          />
+                          Không gửi email khi tôi đang mở web (đã thấy thông báo trên web)
+                        </label>
                       </div>
                       <div>
                         <Button

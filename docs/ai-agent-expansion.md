@@ -109,7 +109,9 @@ AI **chỉ dùng API v1**. API v2 xác thực bằng JWT (`Authorization: Bearer
 | Gửi phản hồi công khai (trả lời / xác nhận / chuyển người / đóng) | `POST /api/v1/tickets/addcomment` | Có sẵn. Core phát `ticket:comment:added` → Notifier |
 | Ghi chú nội bộ cho nhân viên | `POST /api/v1/tickets/addnote` | Có sẵn |
 | Đổi trạng thái (Pending / Open / Closed) | `GET /api/v1/tickets/status` + `PUT /api/v1/tickets/:id` (`status`, `closedDate`) | Có sẵn |
-| Gợi ý triage chờ duyệt | Mặc định ghi thành internal note; hoặc `POST /api/v1/tickets/:uid/ai-suggestions` | Endpoint thứ hai là **đề xuất**, chưa có trong Core (`AI_SUGGESTION_SINK=endpoint`) |
+| Gợi ý triage chờ duyệt | `POST /api/v1/tickets/:uid/ai-suggestions` | **Mới** ([aiSuggestions.js](../src/controllers/api/v2/aiSuggestions.js)). Hiện ở khu "Gợi ý từ AI" (mục 6b). Core chưa có endpoint (404) thì AI tự ghi internal note; ép dùng note bằng `AI_SUGGESTION_SINK=internal-note` |
+
+Giao diện web (phiên đăng nhập, không cần token) dùng thêm: `GET /api/v2/tickets/:uid/ai-suggestions` (quyền `tickets:notes`) và `PUT /api/v2/ai-suggestions/:id` (quyền `tickets:update`) để ghi kết quả duyệt.
 
 ### 3.3 Nhãn phản hồi tự động
 
@@ -206,7 +208,8 @@ sequenceDiagram
     else Không qua
         AI->>C: Comment "Đã tiếp nhận yêu cầu" (ticket giữ Open)
     end
-    AI->>C: Internal note: gợi ý triage + nháp (agent duyệt)
+    AI->>C: Gợi ý triage + nháp (POST .../ai-suggestions)
+    C-->>C: Socket: khu "Gợi ý từ AI" của nhân viên tự tải lại
     C->>N: ticket:comment:added
     N-->>U: Email (sau 60s gộp tin) + thông báo web
     N-->>C: Nhân viên: chỉ thông báo web
@@ -270,9 +273,32 @@ Theo **Cách 1** của sơ đồ 6, với các điểm cần chốt được ch�
 
 - Gợi ý hết hạn sau **6 giờ** (`AI_SUGGESTION_TTL_MS`).
 - Agent **chọn được từng trường**, vd dùng type + group, bỏ priority.
-- Gợi ý ghi bằng **internal note**: chạy ngay mà không phải sửa Core.
+- Gợi ý lưu ở collection `aisuggestions` và hiện ở **khu "Gợi ý từ AI"** trong ticket (mục 6b). Gợi ý mới thay gợi ý cũ chưa duyệt; bản tóm tắt thread gắn thêm vào gợi ý đang chờ.
 
-Nháp chỉ thành phản hồi khi agent bấm dùng (có thể sửa trước). Từ đó nó đi vào luồng thông báo ở 5.6 như mọi phản hồi khác. Luồng này minh họa ở `npm run demo:e2e`.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant AI as AI Agent
+    participant C as Trudesk Core
+    participant UI as Khu "Gợi ý từ AI"
+    actor AG as Nhân viên
+
+    AI->>C: POST /api/v1/tickets/:uid/ai-suggestions
+    C->>C: Lưu (status=pending, hết hạn sau 6 giờ)
+    C-->>UI: Socket: TICKETS_AI_SUGGESTION_UPDATE
+    UI->>C: GET /api/v2/tickets/:uid/ai-suggestions
+    AG->>UI: Tick trường, bấm "Áp dụng đã chọn"
+    loop Lần lượt từng trường (chờ server xác nhận)
+        UI->>C: Socket có sẵn: TICKETS_TYPE_SET / PRIORITY_SET / GROUP_SET
+        C-->>UI: TICKETS_UI_*_UPDATE
+    end
+    UI->>C: PUT /api/v2/ai-suggestions/:id (trường đã áp dụng, có dùng nháp không)
+    C->>C: status=approved/rejected + Ticket History "Duyệt gợi ý AI: ..."
+```
+
+Áp dụng từng trường đi qua đúng socket event mà giao diện Trudesk vẫn dùng khi đổi tay, nên logic gốc và lịch sử ticket không đổi. Các trường được gửi **lần lượt**, vì mỗi handler đọc-sửa-lưu cùng một ticket; gửi đồng thời sẽ ghi đè nhau. Giá trị AI gợi ý được ánh xạ theo **tên** sang dữ liệu thật; không tìm thấy (vd AI gợi ý "Incident" nhưng Trudesk chỉ có loại "Issue") thì trường bị mờ, không áp dụng được.
+
+Nháp chỉ thành phản hồi khi agent bấm **Chèn nháp vào ô Comment**, sửa nếu cần, rồi tự gửi. Từ đó nó đi vào luồng thông báo ở 5.6 như mọi phản hồi khác.
 
 ### 5.6 Thông báo phản hồi: web + email ([src/notifications/ticketReply/](../src/notifications/ticketReply/))
 
@@ -370,6 +396,21 @@ Gmail/Outlook không hiển thị webfont hay SVG nhúng. [icons.js](../src/noti
 
 Nội dung comment không chứa emoji. Trên web, người dùng thấy nhãn chữ (mục 3.3); trong email, nhãn được thay bằng icon kèm chữ.
 
+## 6b. Giao diện web
+
+Icon trên web dùng bộ **Material Icons** mà giao diện Trudesk đang dùng sẵn (`<i className='material-icons'>…</i>`, nạp trong `src/sass/app.sass`), cùng ý nghĩa với icon trong email.
+
+| Thành phần | Ai thấy | Ở đâu | File |
+|---|---|---|---|
+| **Khu "Gợi ý từ AI"** (icon `lightbulb`): loại / mức ưu tiên / nhóm có ô tick và % tin cậy (xanh ≥ 85%, vàng ≥ 70%), tag, ticket tương tự (link), tóm tắt, nháp; nút **Áp dụng đã chọn**, **Bỏ qua**, **Chèn nháp vào ô Comment**; dòng báo "AI đã tự trả lời / đã gửi xác nhận" | Nhân viên (quyền `tickets:notes`) | Cột trái màn hình ticket, trên Ticket History | [AISuggestionPanel.jsx](../src/client/containers/Tickets/AISuggestionPanel.jsx) |
+| **Huy hiệu phản hồi tự động**: comment của AI hiện icon + nhãn (vd `headset_mic` · Bộ phận IT · Trả lời tự động) thay cho dòng chữ đầu | Mọi người xem ticket | Trong danh sách comment | [CommentNotePartial.jsx](../src/client/containers/Tickets/CommentNotePartial.jsx), [aiReply.js](../src/client/lib/aiReply.js) |
+| **Toast** "Ticket #… có phản hồi mới - người trả lời" + đoạn đầu nội dung + nút **XEM**. Không hiện khi đang mở đúng ticket đó | Người nhận thông báo (mục 5.6) đang mở web | Góc dưới phải, mọi trang | [ticketSocketEvents.jsx](../src/client/lib/socket/ticketSocketEvents.jsx) |
+| **Chọn kênh nhận thông báo**: Web và email / Chỉ trên web / Chỉ email / Không nhận, và "Không gửi email khi tôi đang mở web" | Mỗi người dùng cho chính mình | Profile → Preferences → Thông báo phản hồi ticket | [Profile/index.jsx](../src/client/containers/Profile/index.jsx), lưu qua `PUT /api/v2/accounts/profile` |
+
+Nội dung đưa vào toast được escape (plugin snackbar dùng `innerHTML`). Nhãn phản hồi tự động dùng chung một file với email ([autoReplyKinds.js](../src/notifications/ticketReply/autoReplyKinds.js)), nên web và email luôn khớp.
+
+Sau khi sửa code giao diện cần build lại: `npm run webpackdist`, rồi khởi động lại Trudesk và tải lại trình duyệt bằng Ctrl+F5.
+
 ## 7. Bảo mật và an toàn dữ liệu
 
 | Rủi ro | Biện pháp |
@@ -423,7 +464,7 @@ npm run demo:e2e            # AI gợi ý → agent duyệt nháp → thông bá
 node demo/send-real-email.js --to <email> [--ticket 1047] [--dry-run] [--mock]
                             # gửi THẬT qua SMTP Gmail (GMAIL_USER, GMAIL_APP_PASSWORD trong ai-agent/.env)
 npm run ai-agent:eval       # bảng độ chính xác triage (AI_PROVIDER=ollama để đo model thật)
-npm run test:unit           # 58 test, không cần MongoDB
+npm run test:unit           # 64 test, không cần MongoDB
 npm run ai-agent            # chạy AI Agent Service ở cổng 8200
 ```
 
@@ -455,8 +496,8 @@ npm run ai-agent            # chạy AI Agent Service ở cổng 8200
 | Tài khoản AI trong Core | Cần tạo tay trên mỗi môi trường | Tạo user `ai.assistant` (role Support), lấy token (run-guide.md bước 4) | A, C |
 | IMAP với Gmail | Chưa cấu hình | Bật IMAP cho hộp helpdesk, khai báo ở Settings → Mailer → Mail Check | C |
 | Outbox lưu trong RAM | Mất email đang chờ (tối đa ~5 phút) khi restart; nhiều instance có thể gửi trùng | Store trên MongoDB/Redis + khóa phân tán khi flush | C |
-| Giao diện web | Server đã lưu chuông thông báo và phát `$trudesk:client:ticket:reply`; client chưa hiện toast, chưa có màn hình chọn kênh nhận | Listener trong `src/client`, mục chọn kênh trong Profile (dùng icon Material có sẵn) | A |
-| Endpoint `ai-suggestions` + UI duyệt | Chưa có; AI đang ghi internal note | Model `AISuggestion`, endpoint, khu "Gợi ý từ AI" trong ticket | A |
+| Giao diện web | **Đã làm** (mục 6b): khu Gợi ý từ AI, huy hiệu, toast, chọn kênh nhận. Đã build và có unit test cho API; **chưa thử bằng tay trên trình duyệt** | Chạy theo kịch bản ở run-guide.md mục 8 | A |
+| Tag gợi ý | Khu gợi ý chỉ hiển thị tag, không áp dụng (tag phải có sẵn trong hệ thống) | Áp dụng tag đã tồn tại qua socket tag có sẵn | A |
 | Chất lượng trả lời tự động | Đã chạy thật trên 4 ticket + 2 phản hồi. Model 7B dao động giữa các lần chạy | Đo tỉ lệ tự gửi và tỉ lệ "đã được" trên 30–50 ticket thật; bật trước cho 1 nhóm | B |
 | Embedding | Hash bag-of-words, ngưỡng hiệu chỉnh cho mock | Mô hình embedding thật + ES `dense_vector`, đo lại ngưỡng | B, C |
 | Claude provider | Viết theo SDK chính thức, chưa chạy thử | Node ≥ 18, `npm install @anthropic-ai/sdk` trong `ai-agent/` | B |
@@ -478,7 +519,10 @@ npm run ai-agent            # chạy AI Agent Service ở cổng 8200
 | [icons.js](../src/notifications/ticketReply/icons.js), [autoReplyKinds.js](../src/notifications/ticketReply/autoReplyKinds.js) | Icon Material → PNG; nhãn phản hồi tự động |
 | [inboundReply.js](../src/notifications/ticketReply/inboundReply.js), [inboundHandler.js](../src/notifications/ticketReply/inboundHandler.js) | Email trả lời đi vào |
 | [trudeskAdapters.js](../src/notifications/ticketReply/trudeskAdapters.js) | Nối Notifier vào Mongoose, mailer, Socket.io |
+| [src/models/aisuggestion.js](../src/models/aisuggestion.js), [src/controllers/api/v2/aiSuggestions.js](../src/controllers/api/v2/aiSuggestions.js) | Lưu và duyệt gợi ý AI (mục 5.5) |
+| [src/socketio/socketEventConsts.js](../src/socketio/socketEventConsts.js) | Thêm `TICKETS_REPLY_NOTIFY`, `TICKETS_AI_SUGGESTION_UPDATE` |
+| `src/client/containers/Tickets/AISuggestionPanel.jsx`, `CommentNotePartial.jsx`, `SingleTicketContainer.jsx`, `src/client/containers/Profile/index.jsx`, `src/client/lib/aiReply.js`, `src/client/lib/socket/ticketSocketEvents.jsx` | Giao diện (mục 6b); bản build nằm ở `public/js/` |
 
 **AI Agent Service** (`ai-agent/`): `src/server.js`, `src/env.js`, `src/queue/`, `src/pipeline.js`, `src/bootstrap.js`, `src/config.js`, `src/preprocess/`, `src/skills/`, `src/rag/`, `src/llm/` (providers `ollama`, `claude`, `mock`), `src/guardrails/`, `src/autoreply/`, `src/core/` (`httpCore`, `mockCore`), `src/audit/`; `mock-data/`; `scripts/eval.js`; `test/`.
 
-**Demo và test**: `demo/e2e-auto-reply-ollama.js`, `demo/e2e-ai-reply-notify.js`, `demo/send-real-email.js`, `demo/mock-data/`, `test/unit/ticketReply.js`, `ai-agent/test/`.
+**Demo và test**: `demo/e2e-auto-reply-ollama.js`, `demo/e2e-ai-reply-notify.js`, `demo/send-real-email.js`, `demo/mock-data/`, `test/unit/ticketReply.js`, `test/unit/aiSuggestions.js`, `ai-agent/test/`.

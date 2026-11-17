@@ -51,6 +51,10 @@ module.exports = function (middleware, router, controllers) {
   router.delete('/api/v2/tickets/:uid', apiv2Auth, canUser('tickets:delete'), apiv2.tickets.delete)
   router.delete('/api/v2/tickets/deleted/:id', apiv2Auth, isAdmin, apiv2.tickets.permDelete)
 
+  // Gợi ý của AI Agent (khu "Gợi ý từ AI" trong ticket)
+  router.get('/api/v2/tickets/:uid/ai-suggestions', apiv2Auth, canUser('tickets:notes'), apiv2.aiSuggestions.getForTicket)
+  router.put('/api/v2/ai-suggestions/:id', apiv2Auth, canUser('tickets:update'), apiv2.aiSuggestions.review)
+
   // Groups
   router.get('/api/v2/groups', apiv2Auth, apiv2.groups.get)
   router.post('/api/v2/groups', apiv2Auth, canUser('groups:create'), apiv2.groups.create)
