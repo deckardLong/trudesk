@@ -23,11 +23,13 @@ const Email = require('email-templates')
 const templateDir = path.resolve(__dirname, '..', 'mailer', 'templates')
 const socketEvents = require('../socketio/socketEventConsts')
 const notifications = require('../notifications') // Load Push Events
+const ticketReplyNotifier = require('../notifications/ticketReply/trudeskAdapters')
 
 const eventTicketCreated = require('./events/event_ticket_created')
 
 ;(function () {
   notifications.init(emitter)
+  require('./aiEventPublisher').init(emitter) // chỉ chạy khi có AI_AGENT_WEBHOOK_URL
 
   emitter.on('ticket:created', async function (data) {
     await eventTicketCreated(data)
@@ -136,6 +138,18 @@ const eventTicketCreated = require('./events/event_ticket_created')
     // Goes to client
     io.sockets.emit(socketEvents.TICKETS_UPDATE, ticket)
 
+    // Thông báo phản hồi ticket qua web + email (src/notifications/ticketReply).
+    // Đặt TICKET_REPLY_NOTIFY=legacy để quay về luồng cũ bên dưới.
+    const useReplyNotifierV2 = ticketReplyNotifier.isEnabled()
+    if (useReplyNotifierV2) {
+      ticketReplyNotifier
+        .get()
+        .onCommentAdded({ ticket, comment, isInternal: false })
+        .catch(function (err) {
+          winston.warn('[trudesk:events:ticketReply] - ' + err)
+        })
+    }
+
     settingsSchema.getSettingsByName(['tps:enable', 'tps:username', 'tps:apikey', 'mailer:enable'], function (
       err,
       tpsSettings
@@ -144,8 +158,8 @@ const eventTicketCreated = require('./events/event_ticket_created')
 
       let tpsEnabled = _.head(_.filter(tpsSettings, ['name', 'tps:enable']))
       let tpsUsername = _.head(_.filter(tpsSettings, ['name', 'tps:username']))
-      let tpsApiKey = _.head(_.filter(tpsSettings), ['name', 'tps:apikey'])
-      let mailerEnabled = _.head(_.filter(tpsSettings), ['name', 'mailer:enable'])
+      let tpsApiKey = _.head(_.filter(tpsSettings, ['name', 'tps:apikey']))
+      let mailerEnabled = _.head(_.filter(tpsSettings, ['name', 'mailer:enable']))
       mailerEnabled = !mailerEnabled ? false : mailerEnabled.value
 
       if (!tpsEnabled || !tpsUsername || !tpsApiKey) {
@@ -159,9 +173,10 @@ const eventTicketCreated = require('./events/event_ticket_created')
       async.parallel(
         [
           function (cb) {
-            if (ticket.owner._id.toString() === comment.owner.toString()) return cb
+            if (useReplyNotifierV2) return cb()
+            if (ticket.owner._id.toString() === comment.owner.toString()) return cb()
             if (!_.isUndefined(ticket.assignee) && ticket.assignee._id.toString() === comment.owner.toString())
-              return cb
+              return cb()
 
             const notification = new NotificationSchema({
               owner: ticket.owner,
@@ -177,8 +192,9 @@ const eventTicketCreated = require('./events/event_ticket_created')
             })
           },
           function (cb) {
+            if (useReplyNotifierV2) return cb()
             if (_.isUndefined(ticket.assignee)) return cb()
-            if (ticket.assignee._id.toString() === comment.owner.toString()) return cb
+            if (ticket.assignee._id.toString() === comment.owner.toString()) return cb()
             if (ticket.owner._id.toString() === ticket.assignee._id.toString()) return cb()
 
             const notification = new NotificationSchema({
@@ -208,6 +224,7 @@ const eventTicketCreated = require('./events/event_ticket_created')
           },
           // Send email to subscribed users
           function (c) {
+            if (useReplyNotifierV2) return c()
             if (!mailerEnabled) return c()
 
             const mailer = require('../mailer')
@@ -284,9 +301,19 @@ const eventTicketCreated = require('./events/event_ticket_created')
     })
   })
 
-  emitter.on('ticket:note:added', function (ticket) {
+  emitter.on('ticket:note:added', function (ticket, note) {
     // Goes to client
     io.sockets.emit('updateNotes', ticket)
+
+    // Ghi chú nội bộ: chỉ báo web cho nhân viên hỗ trợ, không bao giờ gửi cho người dùng cuối.
+    if (note && ticketReplyNotifier.isEnabled()) {
+      ticketReplyNotifier
+        .get()
+        .onCommentAdded({ ticket, comment: note, isInternal: true })
+        .catch(function (err) {
+          winston.warn('[trudesk:events:ticketReply:note] - ' + err)
+        })
+    }
   })
 
   emitter.on('trudesk:profileImageUpdate', function (data) {

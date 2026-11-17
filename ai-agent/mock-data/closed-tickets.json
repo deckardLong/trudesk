@@ -1,0 +1,44 @@
+[
+  {
+    "uid": 980,
+    "subject": "VPN báo lỗi 809 khi làm việc ở nhà",
+    "issue": "Em kết nối VPN từ nhà thì báo lỗi 809, ở công ty thì bình thường. Số điện thoại em 0912345678.",
+    "resolution": "Mạng nhà chặn UDP 4500. Đã thêm khóa registry AssumeUDPEncapsulationContextOnSendRule = 2, khởi động lại thì kết nối được.",
+    "type": "Incident", "priority": "Normal", "group": "Network", "tags": ["vpn"]
+  },
+  {
+    "uid": 985,
+    "subject": "Bị khóa tài khoản sau khi đổi mật khẩu",
+    "issue": "Sáng nay đổi mật khẩu xong thì cứ vài phút lại bị khóa tài khoản. Email: an.do@acme.vn",
+    "resolution": "Điện thoại vẫn lưu mật khẩu cũ trong Outlook nên đăng nhập sai liên tục. Đã mở khóa và hướng dẫn cập nhật mật khẩu trên điện thoại.",
+    "type": "Incident", "priority": "High", "group": "Access", "tags": ["password"]
+  },
+  {
+    "uid": 990,
+    "subject": "Máy in HP tầng 2 kẹt giấy",
+    "issue": "Máy in HP LaserJet tầng 2 kẹt giấy liên tục từ hôm qua.",
+    "resolution": "Giấy bị ẩm. Thay ream giấy mới và chạy Clean Paper Path, máy in hoạt động bình thường.",
+    "type": "Incident", "priority": "Normal", "group": "Hardware", "tags": ["printer"]
+  },
+  {
+    "uid": 995,
+    "subject": "Xin quyền ghi thư mục kế toán",
+    "issue": "Nhờ IT cấp quyền đọc ghi thư mục \\\\fileserver\\finance\\2026 cho chị.",
+    "resolution": "Trưởng phòng kế toán đã duyệt. Đã cấp quyền Modify, người dùng đăng nhập lại là dùng được.",
+    "type": "Service Request", "priority": "Normal", "group": "Access", "tags": ["permission"]
+  },
+  {
+    "uid": 1001,
+    "subject": "Outlook không nhận được thư mới",
+    "issue": "Outlook trên máy em không nhận thư mới từ chiều qua, webmail vẫn thấy thư.",
+    "resolution": "Outlook đang ở chế độ Work Offline. Tắt Work Offline và tạo lại profile.",
+    "type": "Incident", "priority": "Normal", "group": "Email", "tags": ["outlook"]
+  },
+  {
+    "uid": 1010,
+    "subject": "Cài đặt Microsoft Project cho phòng dự án",
+    "issue": "Đề nghị cài Microsoft Project cho 3 máy phòng dự án, đã có license.",
+    "resolution": "Đã cài qua Software Center và kích hoạt license.",
+    "type": "Service Request", "priority": "Low", "group": "Software", "tags": ["office"]
+  }
+]

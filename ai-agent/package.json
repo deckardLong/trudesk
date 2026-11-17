@@ -1,0 +1,23 @@
+{
+  "name": "trudesk-ai-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Agent Service cho Modular ITSM (triage, dedup, RAG reply draft, summarizer) - giao tiếp với Trudesk Core qua event + API",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "demo": "node ../demo/e2e-ai-reply-notify.js",
+    "eval": "node scripts/eval.js",
+    "test": "mocha test"
+  },
+  "dependencies": {
+    "axios": "0.27.2"
+  },
+  "devDependencies": {
+    "chai": "4.3.6",
+    "mocha": "10.0.0"
+  }
+}

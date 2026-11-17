@@ -25,6 +25,7 @@ const groupSchema = require('../models/group')
 const ticketTypeSchema = require('../models/tickettype')
 const statusSchema = require('../models').Status
 const Ticket = require('../models/ticket')
+const ticketReplyInbound = require('../notifications/ticketReply/inboundHandler')
 
 const mailCheck = {}
 mailCheck.inbox = []
@@ -179,6 +180,16 @@ function bindImapReady () {
                           message.from = mail.headers.get('from').value[0].address
                         }
 
+                        // Dữ liệu cho luồng "trả lời ticket qua email" (notifications/ticketReply)
+                        message.to = collectRecipientAddresses(mail)
+                        message.text = mail.text || ''
+                        message.headers = {
+                          'auto-submitted': mail.headers.get('auto-submitted'),
+                          precedence: mail.headers.get('precedence'),
+                          'x-autoreply': mail.headers.get('x-autoreply'),
+                          'x-autorespond': mail.headers.get('x-autorespond')
+                        }
+
                         if (mail.subject) {
                           message.subject = mail.subject
                         } else {
@@ -235,9 +246,45 @@ mailCheck.fetchMail = function () {
   }
 }
 
+function collectRecipientAddresses (mail) {
+  const out = []
+  ;['to', 'cc'].forEach(function (field) {
+    const v = mail[field]
+    if (!v) return
+    _.castArray(v).forEach(function (group) {
+      _.each(group.value, function (a) {
+        if (a && a.address) out.push(a.address)
+      })
+    })
+  })
+  const delivered = mail.headers.get('delivered-to')
+  _.castArray(delivered || []).forEach(function (d) {
+    if (typeof d === 'string') out.push(d)
+    else if (d && d.value) _.each(d.value, a => a.address && out.push(a.address))
+  })
+  return _.uniq(out)
+}
+
 function handleMessages (messages, done) {
-  var count = 0
   messages.forEach(function (message) {
+    // Thư trả lời một ticket có sẵn -> thêm comment; còn lại -> tạo ticket mới như cũ.
+    // Dùng then(ok, fail) thay vì .catch để lỗi trong createTicketFromMessage không tạo ticket hai lần.
+    ticketReplyInbound.tryHandleReply(message).then(
+      function (result) {
+        if (!result.handled) createTicketFromMessage(message, done)
+      },
+      function (err) {
+        winston.warn('[mailCheck:ticketReply] ' + err + ' - falling back to new ticket')
+        createTicketFromMessage(message, done)
+      }
+    )
+  })
+}
+
+let count = 0
+function createTicketFromMessage (message, done) {
+  // eslint-disable-next-line no-lone-blocks
+  {
     if (
       !_.isUndefined(message.from) &&
       !_.isEmpty(message.from) &&
@@ -407,7 +454,7 @@ function handleMessages (messages, done) {
         }
       )
     }
-  })
+  }
 }
 
 function openInbox (cb) {

@@ -54,6 +54,7 @@ Monolith Node/Express + MongoDB + Socket.io, frontend React 17 kết hợp jQuer
 | 4 | AI Agent: triage, trùng lặp, gợi ý trả lời, tóm tắt | Tận dụng emitter + ES | Cao |
 | 5 | Tách trạng thái ra ngoài (S3/Blob, Redis, lock job) | Bắt buộc để chạy cloud nhiều instance | Bắt buộc |
 | 6 | Service Catalog + phê duyệt, Asset/CMDB-lite | Giai đoạn 2 | Trung bình |
+| 7 | Thông báo phản hồi ticket qua web + email, trả lời bằng email | Người dùng không phải mở web mới biết có phản hồi; khép vòng với nháp AI | Cao (đã có bản chạy mock, xem [ai-agent-expansion.md](ai-agent-expansion.md)) |
 
 **Không đề xuất:** viết lại frontend, tách toàn bộ thành microservice, làm lại mobile. Tốn công lớn, không giải quyết điểm yếu cốt lõi.
 

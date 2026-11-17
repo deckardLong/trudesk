@@ -264,3 +264,11 @@ Ticket #123:
 1. Hạn hết gợi ý: 1 giờ, 6 giờ, hay mãi mãi?
 2. Agent có chọn field riêng lẻ không? (dùng Type + Priority, bỏ Assignee)
 3. Gợi ý nào được áp dụng thì có thêm endpoint `/api/v2/tickets/:id/ai-suggestions` hay xài endpoint `/api/v2/tickets/:id` hiện có?
+
+> Bản hiện thực chọn: 6 giờ, chọn được từng trường, ghi qua internal note trước rồi chuyển sang endpoint riêng.
+
+## 7. Hiện thực và mở rộng
+
+Code hiện thực các sơ đồ trên (thư mục `ai-agent/`), cùng hai chức năng mới **trả lời email tự động bằng model local (Ollama)** và **thông báo phản hồi ticket qua web + email (người dùng trả lời được bằng email)**, được mô tả trong [ai-agent-expansion.md](ai-agent-expansion.md): kiến trúc, hợp đồng giao tiếp, các luồng, bảo mật, số liệu đo và giới hạn.
+
+Chạy thử: `npm run demo:auto-reply` (Ollama) hoặc `npm run demo:e2e` (mock).

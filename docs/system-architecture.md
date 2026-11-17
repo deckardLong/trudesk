@@ -382,4 +382,5 @@ flowchart TB
 
 - [docs/expansion-plan.md](expansion-plan.md): kế hoạch mở rộng và phân công 3 người.
 - [docs/ai-agent-diagrams.md](ai-agent-diagrams.md): 5 sơ đồ Mermaid của AI Agent.
+- [docs/ai-agent-expansion.md](ai-agent-expansion.md): kiến trúc và luồng **đã xây dựng**: AI Agent, trả lời email tự động (Ollama), thông báo phản hồi qua web + email.
 - `Trudesk.drawio` (Google Drive của người A): 7 sơ đồ về SLA, KB, ITIL và mô hình dữ liệu.

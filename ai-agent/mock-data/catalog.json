@@ -1,0 +1,35 @@
+{
+  "types": ["Incident", "Service Request", "Problem", "Change"],
+  "priorities": ["Low", "Normal", "High", "Critical"],
+  "groups": [
+    { "name": "Network", "keywords": ["vpn", "wifi", "mạng", "internet", "kết nối", "lỗi 809", "dns", "proxy", "chậm mạng"] },
+    { "name": "Access", "keywords": ["quyền", "cấp quyền", "mật khẩu", "password", "tài khoản", "khóa tài khoản", "đăng nhập", "thư mục", "mfa"] },
+    { "name": "Hardware", "keywords": ["máy in", "kẹt giấy", "laptop", "màn hình", "chuột", "bàn phím", "ổ cứng", "sạc", "máy chiếu"] },
+    { "name": "Email", "keywords": ["email", "outlook", "hộp thư", "thư rác", "spam", "gửi mail", "nhận mail"] },
+    { "name": "Software", "keywords": ["cài đặt", "phần mềm", "license", "office", "excel", "teams", "cập nhật", "crash", "treo"] }
+  ],
+  "typeRules": [
+    { "type": "Problem", "keywords": ["lặp lại", "nhiều ngày", "nguyên nhân gốc", "tái diễn"] },
+    { "type": "Change", "keywords": ["nâng cấp", "thay đổi cấu hình", "di chuyển", "migrate", "bảo trì", "triển khai"] },
+    { "type": "Service Request", "keywords": ["xin", "cấp quyền", "xin cấp", "cài đặt", "đề nghị", "nhờ", "tạo tài khoản", "cấp tài khoản"] },
+    { "type": "Incident", "keywords": ["lỗi", "không", "hỏng", "kẹt", "treo", "chậm", "mất", "bị khóa", "sập"] }
+  ],
+  "tagRules": {
+    "vpn": ["vpn"],
+    "wifi": ["wifi", "wi-fi"],
+    "printer": ["máy in"],
+    "password": ["mật khẩu", "password", "khóa tài khoản"],
+    "permission": ["cấp quyền", "quyền"],
+    "outlook": ["outlook"],
+    "office": ["office", "microsoft 365"],
+    "laptop": ["laptop"],
+    "mfa": ["mfa"],
+    "teams": ["teams"]
+  },
+  "priorityRules": [
+    { "priority": "Critical", "keywords": ["toàn công ty", "sập", "ngừng hoạt động", "khẩn cấp", "mất dữ liệu", "ransomware"] },
+    { "priority": "Low", "keywords": ["khi rảnh", "không gấp", "góp ý", "tham khảo"] },
+    { "priority": "High", "keywords": ["cả phòng", "nhiều người", "gấp", "không làm việc được", "khách hàng", "deadline"] }
+  ],
+  "tags": ["vpn", "wifi", "printer", "password", "permission", "outlook", "office", "laptop", "mfa", "teams"]
+}

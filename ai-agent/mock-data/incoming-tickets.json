@@ -1,0 +1,58 @@
+[
+  {
+    "uid": 1042,
+    "owner": { "fullname": "Lê Thị Hoa", "email": "hoa.le@acme.vn" },
+    "subject": "Không kết nối được VPN từ nhà",
+    "issue": "Từ sáng nay em không vào được VPN, báo lỗi 809. Máy laptop Dell, Windows 11. Anh gọi em số 0987654321 nhé.",
+    "expected": { "type": "Incident", "priority": "Normal", "group": "Network" }
+  },
+  {
+    "uid": 1043,
+    "owner": { "fullname": "Phạm Anh Tuấn", "email": "tuan.pham@partner.com" },
+    "subject": "Xin cấp quyền thư mục dự án Alpha",
+    "issue": "Nhờ IT cấp quyền đọc/ghi thư mục \\\\fileserver\\projects\\alpha cho tôi để làm báo cáo.",
+    "expected": { "type": "Service Request", "priority": "Normal", "group": "Access" }
+  },
+  {
+    "uid": 1044,
+    "owner": { "fullname": "Võ Đăng Khoa", "email": "khoa.vo@acme.vn" },
+    "subject": "Máy in tầng 3 kẹt giấy liên tục",
+    "issue": "Máy in HP tầng 3 cứ in 2-3 tờ là kẹt giấy, cả phòng không in được hợp đồng cho khách hàng.",
+    "expected": { "type": "Incident", "priority": "High", "group": "Hardware" }
+  },
+  {
+    "uid": 1045,
+    "owner": { "fullname": "Đỗ Minh An", "email": "an.do@acme.vn" },
+    "subject": "Tài khoản bị khóa liên tục",
+    "issue": "Em vừa đổi mật khẩu hôm qua, hôm nay cứ đăng nhập được một lúc là bị khóa tài khoản. Mật khẩu: Abc@12345",
+    "expected": { "type": "Incident", "priority": "Normal", "group": "Access" }
+  },
+  {
+    "uid": 1046,
+    "owner": { "fullname": "Ngô Thu Trang", "email": "trang.ngo@acme.vn" },
+    "subject": "Outlook không gửi được email",
+    "issue": "Outlook báo lỗi không gửi được email ra ngoài, thư nằm mãi trong Outbox. Webmail vẫn gửi bình thường.",
+    "expected": { "type": "Incident", "priority": "Normal", "group": "Email" }
+  },
+  {
+    "uid": 1047,
+    "owner": { "fullname": "Bùi Quốc Huy", "email": "huy.bui@acme.vn" },
+    "subject": "Wifi toàn công ty bị sập",
+    "issue": "Từ 8h sáng toàn công ty không vào được internet qua wifi, mạng dây vẫn chạy. Khẩn cấp vì đang có buổi họp với khách hàng.",
+    "expected": { "type": "Incident", "priority": "Critical", "group": "Network" }
+  },
+  {
+    "uid": 1048,
+    "owner": { "fullname": "Lý Gia Bảo", "email": "bao.ly@acme.vn" },
+    "subject": "Đề nghị nâng cấp Office lên bản mới",
+    "issue": "Đề nghị IT nâng cấp Office 2019 lên Microsoft 365 cho phòng marketing, không gấp, khi rảnh làm giúp.",
+    "expected": { "type": "Change", "priority": "Low", "group": "Software" }
+  },
+  {
+    "uid": 1049,
+    "owner": { "fullname": "Mai Văn Phúc", "email": "phuc.mai@acme.vn" },
+    "subject": "VPN lỗi 809 cả phòng kinh doanh",
+    "issue": "Cả phòng kinh doanh làm ở nhà đều bị lỗi 809 khi vào VPN, lặp lại nhiều ngày nay.",
+    "expected": { "type": "Problem", "priority": "High", "group": "Network" }
+  }
+]

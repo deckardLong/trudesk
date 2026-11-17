@@ -70,3 +70,9 @@ public/uploads/assets/upload/
 stats\.json
 dist/
 *.heapsnapshot
+
+# Mock output của demo thông báo / AI agent
+logs/mock-mailbox/
+logs/*.jsonl
+ai-agent/.env
+ai-agent/node_modules/

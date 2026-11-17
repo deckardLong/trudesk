@@ -1,0 +1,44 @@
+[
+  {
+    "id": "KB-101",
+    "title": "Khắc phục lỗi VPN 809 trên Windows 10/11",
+    "status": "Published",
+    "tags": ["vpn"],
+    "body": "Lỗi 809 nghĩa là máy không thiết lập được kết nối L2TP/IPsec tới VPN gateway.\n\nBước 1: Kiểm tra mạng nhà có chặn cổng UDP 500 và 4500 không (thử phát wifi từ điện thoại).\nBước 2: Mở Registry, tạo khóa AssumeUDPEncapsulationContextOnSendRule = 2 tại HKLM\\SYSTEM\\CurrentControlSet\\Services\\PolicyAgent, rồi khởi động lại máy.\nBước 3: Gỡ và cài lại VPN client phiên bản 5.2 từ Software Center.\n\nNếu vẫn lỗi, gửi ảnh chụp màn hình lỗi và kết quả lệnh ipconfig /all cho IT."
+  },
+  {
+    "id": "KB-102",
+    "title": "Đặt lại mật khẩu và mở khóa tài khoản domain",
+    "status": "Published",
+    "tags": ["password"],
+    "body": "Tài khoản bị khóa sau 5 lần nhập sai mật khẩu.\n\nTự đặt lại: truy cập https://passwordreset.acme.vn, xác thực bằng MFA rồi đặt mật khẩu mới (tối thiểu 12 ký tự, có chữ hoa, số, ký tự đặc biệt).\nNếu chưa đăng ký MFA: liên hệ IT kèm mã nhân viên để được mở khóa thủ công.\nSau khi đổi mật khẩu, nhớ cập nhật mật khẩu trên điện thoại (Outlook, Teams) để tránh bị khóa lại."
+  },
+  {
+    "id": "KB-103",
+    "title": "Xử lý máy in HP kẹt giấy liên tục",
+    "status": "Published",
+    "tags": ["printer"],
+    "body": "Nguyên nhân thường gặp: giấy ẩm, khay giấy đặt sai khổ, con lăn kéo giấy bị mòn.\n\nBước 1: Tắt máy, mở nắp sau và lấy hết giấy kẹt.\nBước 2: Thay ream giấy mới, chỉnh thanh gạt khay đúng khổ A4.\nBước 3: Vào menu Maintenance > Clean Paper Path.\nNếu kẹt lặp lại trên 3 lần/ngày, báo IT để thay bộ con lăn (pickup roller)."
+  },
+  {
+    "id": "KB-104",
+    "title": "Quy trình xin cấp quyền thư mục dùng chung",
+    "status": "Published",
+    "tags": ["permission"],
+    "body": "Quyền thư mục trên fileserver phải được trưởng bộ phận sở hữu thư mục phê duyệt.\n\nBước 1: Gửi ticket ghi rõ đường dẫn thư mục và quyền cần (đọc hoặc đọc/ghi).\nBước 2: IT chuyển yêu cầu cho chủ sở hữu thư mục phê duyệt.\nBước 3: Sau khi được duyệt, IT cấp quyền trong vòng 4 giờ làm việc. Người dùng cần đăng xuất và đăng nhập lại để quyền có hiệu lực."
+  },
+  {
+    "id": "KB-105",
+    "title": "Outlook không gửi/nhận được email",
+    "status": "Published",
+    "tags": ["outlook"],
+    "body": "Bước 1: Kiểm tra góc dưới Outlook có báo Disconnected hay Working Offline không; tắt chế độ Work Offline trong tab Send/Receive.\nBước 2: Kiểm tra hộp thư có đầy không (giới hạn 50GB), dọn thư mục Deleted Items.\nBước 3: Tạo lại profile Outlook trong Control Panel > Mail > Show Profiles.\nNếu webmail https://mail.acme.vn vẫn dùng được thì lỗi nằm ở máy, không phải ở máy chủ."
+  },
+  {
+    "id": "KB-199",
+    "title": "Nháp: hướng dẫn cấu hình Wi-Fi khách (chưa duyệt)",
+    "status": "Draft",
+    "tags": ["wifi"],
+    "body": "Bài nháp, không được dùng cho AI."
+  }
+]

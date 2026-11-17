@@ -47,6 +47,8 @@ const COLLECTION = 'accounts'
  * @property {String} accessToken API Access Token
  * @property {Object} preferences Object to hold user preferences
  * @property {Boolean} preferences.autoRefreshTicketGrid Enable the auto refresh of the ticket grid.
+ * @property {String} preferences.notifications.channel Ticket reply notifications: both | web | email | none
+ * @property {Boolean} preferences.notifications.skipEmailWhenOnline Skip reply email while the user is online
  * @property {Boolean} deleted Account Deleted
  */
 const userSchema = mongoose.Schema({
@@ -80,7 +82,12 @@ const userSchema = mongoose.Schema({
     autoRefreshTicketGrid: { type: Boolean, default: true },
     openChatWindows: [{ type: String, default: [] }],
     keyboardShortcuts: { type: Boolean, default: true },
-    timezone: { type: String }
+    timezone: { type: String },
+    // Kênh nhận thông báo khi ticket có phản hồi (src/notifications/ticketReply/channelPolicy.js)
+    notifications: {
+      channel: { type: String, enum: ['both', 'web', 'email', 'none'], default: 'both' },
+      skipEmailWhenOnline: { type: Boolean, default: false }
+    }
   },
 
   deleted: { type: Boolean, default: false }
